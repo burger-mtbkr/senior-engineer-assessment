@@ -1,0 +1,10 @@
+{
+  "profiles": {
+    "Event.Processor": {
+      "commandName": "Project"
+    },
+    "Container (Dockerfile)": {
+      "commandName": "Docker"
+    }
+  }
+}

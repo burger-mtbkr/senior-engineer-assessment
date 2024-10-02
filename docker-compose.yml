@@ -1,0 +1,34 @@
+version: '3.9'
+services:
+  eventprocessor:
+    build: ./Event.Processor
+    container_name: eventprocessor
+    volumes:
+      - data_volume:/data
+      - events_volume:/events
+    environment:
+      - DATA_STORE_PATH=/data/data.json
+      - EVENTS_DIRECTORY=/events
+      - DOTNET_RUNNING_IN_CONTAINER=true
+    networks:
+      - eventnet
+
+  eventgenerator:
+    build: ./Event.Generator
+    container_name: eventgenerator
+    volumes:
+      - events_volume:/events
+    environment:
+      - EVENTS_DIRECTORY=/events
+      - DOTNET_RUNNING_IN_CONTAINER=true
+    depends_on:
+      - eventprocessor
+    networks:
+      - eventnet
+
+volumes:
+  data_volume:
+  events_volume:
+
+networks:
+  eventnet:
