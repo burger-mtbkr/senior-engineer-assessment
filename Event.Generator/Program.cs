@@ -1,5 +1,8 @@
-﻿using Event.Generator.Models;
-using System.Text.Json;
+﻿using System;
+using System.IO;
+using System.Threading.Tasks;
+using Event.Generator.Models;
+using Newtonsoft.Json;
 
 namespace Event.Generator
 {
@@ -21,7 +24,7 @@ namespace Event.Generator
             else
             {
                 // Calculate the solution root path
-                string solutionRoot = Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..");
+                string solutionRoot = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", ".."));
                 eventsDirectory = Path.Combine(solutionRoot, "Events");
             }
 
@@ -29,9 +32,10 @@ namespace Event.Generator
             Directory.CreateDirectory(eventsDirectory);
 
             // Display the full path for verification
-            Console.WriteLine($"Writing events to directory: {Path.GetFullPath(eventsDirectory)}");
+            Console.WriteLine($"Writing events to directory: {eventsDirectory}");
 
-            while (true)
+            // Generate 20 events and then stop
+            for (int i = 0; i < 20; i++)
             {
                 // Generate a random event
                 var eventData = GenerateRandomEvent();
@@ -40,8 +44,10 @@ namespace Event.Generator
                 await WriteEventToFileAsync(eventData, eventsDirectory);
 
                 // Wait for a short interval
-                await Task.Delay(2000);
+                await Task.Delay(500); // Adjust delay as needed
             }
+
+            Console.WriteLine("Event Generator has finished generating events.");
         }
 
         private static EventData GenerateRandomEvent()
@@ -52,7 +58,7 @@ namespace Event.Generator
 
             return new EventData
             {
-                Id = Guid.NewGuid(),
+                Id = Guid.NewGuid().ToString(),
                 EventType = eventType,
                 Timestamp = DateTime.UtcNow,
                 Payload = $"Sample payload for {eventType}"
@@ -62,12 +68,7 @@ namespace Event.Generator
         private static async Task WriteEventToFileAsync(EventData eventData, string directory)
         {
             string fileName = Path.Combine(directory, $"{eventData.Id}.json");
-
-            var options = new JsonSerializerOptions
-            {
-                Converters = { new JsonStringGuidConverter() }
-            };
-            string jsonData = JsonSerializer.Serialize(eventData, options);
+            string jsonData = JsonConvert.SerializeObject(eventData);
 
             try
             {

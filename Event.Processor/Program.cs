@@ -1,11 +1,10 @@
 ﻿using System;
 using System.IO;
 using System.Linq;
-using System.Text.Json;
-using System.Text.Json.Serialization;
 using System.Threading.Tasks;
-using JsonFlatFileDataStore;
 using Event.Processor.Models;
+using JsonFlatFileDataStore;
+using Newtonsoft.Json;
 
 namespace Event.Processor
 {
@@ -29,7 +28,7 @@ namespace Event.Processor
             else
             {
                 // Calculate the solution root path
-                string solutionRoot = Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..");
+                string solutionRoot = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", ".."));
                 eventsDirectory = Path.Combine(solutionRoot, "Events");
                 dataStorePath = Path.Combine(solutionRoot, "Data", "data.json");
             }
@@ -38,15 +37,18 @@ namespace Event.Processor
             Directory.CreateDirectory(eventsDirectory);
             Directory.CreateDirectory(Path.GetDirectoryName(dataStorePath) ?? string.Empty);
 
-            // Display the full path for verification
-            Console.WriteLine($"Monitoring directory: {Path.GetFullPath(eventsDirectory)}");
-            Console.WriteLine($"Data store path: {Path.GetFullPath(dataStorePath)}");
-
             // Initialize the data store
             var dataStore = new DataStore(dataStorePath);
             var processedEventsCollection = dataStore.GetCollection<EventData>("processedEvents");
 
-            // Set up a FileSystemWatcher to monitor the directory
+            // Display the full path for verification
+            Console.WriteLine($"Monitoring directory: {eventsDirectory}");
+            Console.WriteLine($"Data store path: {dataStorePath}");
+
+            // Process existing events in the directory
+            await ProcessExistingEvents(eventsDirectory, processedEventsCollection);
+
+            // Set up a FileSystemWatcher to monitor the directory for new events
             using var watcher = new FileSystemWatcher(eventsDirectory, "*.json")
             {
                 NotifyFilter = NotifyFilters.FileName | NotifyFilters.LastWrite,
@@ -59,18 +61,23 @@ namespace Event.Processor
             await Task.Delay(Timeout.Infinite);
         }
 
+        private static async Task ProcessExistingEvents(string directory, IDocumentCollection<EventData> processedEventsCollection)
+        {
+            var eventFiles = Directory.GetFiles(directory, "*.json");
+
+            foreach (var filePath in eventFiles)
+            {
+                await OnNewEventAsync(filePath, processedEventsCollection);
+            }
+        }
+
         private static async Task OnNewEventAsync(string filePath, IDocumentCollection<EventData> processedEventsCollection)
         {
             try
             {
                 // Read the event data
                 string jsonData = await File.ReadAllTextAsync(filePath);
-
-                var options = new JsonSerializerOptions
-                {
-                    Converters = { new JsonStringGuidConverter() }
-                };
-                var eventData = JsonSerializer.Deserialize<EventData>(jsonData, options);
+                var eventData = JsonConvert.DeserializeObject<EventData>(jsonData);
 
                 if (eventData == null)
                 {
@@ -84,7 +91,6 @@ namespace Event.Processor
                 if (processedEventsCollection.AsQueryable().Any(e => e.Id == eventData.Id))
                 {
                     Console.WriteLine($"Event already processed: {eventData.Id}");
-                    // Optionally delete the file
                     File.Delete(filePath);
                     return;
                 }
@@ -119,21 +125,22 @@ namespace Event.Processor
 
         private static Task HandleEventTypeA(EventData eventData)
         {
-            // Placeholder processing logic for EventTypeA
             Console.WriteLine("Processing EventTypeA");
+            // Add your custom processing logic here
             return Task.CompletedTask;
         }
 
         private static Task HandleEventTypeB(EventData eventData)
         {
-            // Placeholder processing logic for EventTypeB
             Console.WriteLine("Processing EventTypeB");
+            // Add your custom processing logic here
             return Task.CompletedTask;
         }
 
         private static Task HandleUnrecognizedEvent(EventData eventData)
         {
             Console.WriteLine($"Unrecognized event type: {eventData.EventType}");
+            // Handle unrecognized event types as needed
             return Task.CompletedTask;
         }
     }
