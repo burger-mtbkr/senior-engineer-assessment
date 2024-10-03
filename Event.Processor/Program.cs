@@ -23,14 +23,14 @@ namespace Event.Processor
             if (isDocker)
             {
                 eventsDirectory = Environment.GetEnvironmentVariable("EVENTS_DIRECTORY") ?? "/events";
-                dataStorePath = Environment.GetEnvironmentVariable("DATA_STORE_PATH") ?? "/data/data.json";
+                dataStorePath = Environment.GetEnvironmentVariable("DATA_STORE_PATH") ?? "/data/processed_events.json";
             }
             else
             {
                 // Calculate the solution root path
                 string solutionRoot = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", ".."));
                 eventsDirectory = Path.Combine(solutionRoot, "Events");
-                dataStorePath = Path.Combine(solutionRoot, "Data", "data.json");
+                dataStorePath = Path.Combine(solutionRoot, "Data", "processed_events.json");
             }
 
             // Ensure the directories exist
@@ -85,27 +85,38 @@ namespace Event.Processor
                     return;
                 }
 
-                Console.WriteLine($"Received event: {eventData.EventType}");
-
-                // Check if the event has already been processed
-                if (processedEventsCollection.AsQueryable().Any(e => e.Id == eventData.Id))
+                // Check if the event type is known
+                if (eventData.EventType == "EventTypeA" || eventData.EventType == "EventTypeB")
                 {
-                    Console.WriteLine($"Event already processed: {eventData.Id}");
+                    Console.WriteLine($"Received known event: {eventData.EventType}");
+
+                    // Check if the event has already been processed
+                    if (processedEventsCollection.AsQueryable().Any(e => e.Id == eventData.Id))
+                    {
+                        Console.WriteLine($"Event already processed: {eventData.Id}");
+                        // Delete the file since it's a duplicate
+                        File.Delete(filePath);
+                        return;
+                    }
+
+                    // Process the event
+                    await ProcessEventAsync(eventData);
+
+                    // Store the event in the data store
+                    processedEventsCollection.InsertOne(eventData);
+
+                    // Delete the event file after processing
                     File.Delete(filePath);
-                    return;
+
+                    // Log to console
+                    Console.WriteLine($"Processed event: {eventData.EventType} at {eventData.Timestamp}");
                 }
-
-                // Process the event
-                await ProcessEventAsync(eventData);
-
-                // Store the event in the data store
-                processedEventsCollection.InsertOne(eventData);
-
-                // Delete the event file after processing
-                File.Delete(filePath);
-
-                // Log to console
-                Console.WriteLine($"Processed event: {eventData.EventType} at {eventData.Timestamp}");
+                else
+                {
+                    // Unknown event type; do not process or delete
+                    Console.WriteLine($"Unknown event type encountered: {eventData.EventType}. File will remain unprocessed.");
+                    // Optionally, you can log or handle unknown event types differently
+                }
             }
             catch (Exception ex)
             {
@@ -115,11 +126,12 @@ namespace Event.Processor
 
         private static Task ProcessEventAsync(EventData eventData)
         {
+            // Implement processing logic for known event types
             return eventData.EventType switch
             {
                 "EventTypeA" => HandleEventTypeA(eventData),
                 "EventTypeB" => HandleEventTypeB(eventData),
-                _ => HandleUnrecognizedEvent(eventData)
+                _ => Task.CompletedTask
             };
         }
 
@@ -136,12 +148,6 @@ namespace Event.Processor
             // Add your custom processing logic here
             return Task.CompletedTask;
         }
-
-        private static Task HandleUnrecognizedEvent(EventData eventData)
-        {
-            Console.WriteLine($"Unrecognized event type: {eventData.EventType}");
-            // Handle unrecognized event types as needed
-            return Task.CompletedTask;
-        }
     }
 }
+
