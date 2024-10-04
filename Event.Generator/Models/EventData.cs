@@ -1,6 +1,4 @@
-﻿using Newtonsoft.Json;
-
-namespace Event.Generator.Models;
+﻿namespace Event.Generator.Models;
 
 public class EventData
 {

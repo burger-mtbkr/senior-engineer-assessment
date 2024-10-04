@@ -1,8 +1,8 @@
 ﻿using System;
 using System.IO;
+using System.Text.Json;
 using System.Threading.Tasks;
 using Event.Generator.Models;
-using Newtonsoft.Json;
 
 namespace Event.Generator
 {
@@ -68,7 +68,7 @@ namespace Event.Generator
         private static async Task WriteEventToFileAsync(EventData eventData, string directory)
         {
             string fileName = Path.Combine(directory, $"{eventData.Id}.json");
-            string jsonData = JsonConvert.SerializeObject(eventData);
+            string jsonData = JsonSerializer.Serialize(eventData);
 
             try
             {

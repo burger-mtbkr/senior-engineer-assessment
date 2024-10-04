@@ -1,10 +1,10 @@
 ﻿using System;
 using System.IO;
 using System.Linq;
+using System.Text.Json;
 using System.Threading.Tasks;
 using Event.Processor.Models;
 using JsonFlatFileDataStore;
-using Newtonsoft.Json;
 
 namespace Event.Processor
 {
@@ -77,7 +77,8 @@ namespace Event.Processor
             {
                 // Read the event data
                 string jsonData = await File.ReadAllTextAsync(filePath);
-                var eventData = JsonConvert.DeserializeObject<EventData>(jsonData);
+
+                var eventData = JsonSerializer.Deserialize<EventData>(jsonData);
 
                 if (eventData == null)
                 {
