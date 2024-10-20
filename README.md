@@ -93,10 +93,11 @@ SENIOR_ASSESSMENT/
 ## Deliverables
 
 - The complete solution with both projects implemented as per the requirements.
-- Tests.
+- **Tests**.
 - Ensure that all source code is included and properly organized within the solution.
 - Provide any necessary instructions to run and test the applications.
-- Submit your application a a GitHub repository. Ideally with visible history in place.  
+- Include any **Assumptions** you have made and any **improvements** that you would make in the future.
+- Submit your application as a **GitHub repository**. Ideally with visible history in place.
 
 ## Bonus Deliverables:
 
